@@ -5,12 +5,13 @@ import BottomNav from '@/components/BottomNav';
 import ChatView from '@/components/ChatView';
 import DocumentsView from '@/components/DocumentsView';
 import EventEditModal from '@/components/EventEditModal';
+import PresentationView from '@/components/presentation/PresentationView';
 import { tripStats } from '@/data/mockItinerary';
 import { TripEvent } from '@/types/trip';
 import { useItinerary } from '@/hooks/useItinerary';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type TabId = 'chat' | 'itinerary' | 'documents';
+type TabId = 'chat' | 'itinerary' | 'documents' | 'presentation';
 
 const tabVariants = {
   enter: { opacity: 0, x: 20 },
@@ -22,6 +23,16 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
   const [editingEvent, setEditingEvent] = useState<TripEvent | null>(null);
   const { itinerary, uploadReceipt } = useItinerary();
+
+  // Presentation mode is fullscreen — hide header & nav
+  if (activeTab === 'presentation') {
+    return (
+      <PresentationView
+        itinerary={itinerary}
+        onBack={() => setActiveTab('itinerary')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

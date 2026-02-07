@@ -1,7 +1,7 @@
 import { MessageCircle, Map, FileText, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type TabId = 'chat' | 'itinerary' | 'documents';
+type TabId = 'chat' | 'itinerary' | 'documents' | 'presentation';
 
 interface BottomNavProps {
   activeTab: TabId;
@@ -9,9 +9,10 @@ interface BottomNavProps {
 }
 
 const tabs: { id: TabId; icon: typeof Map; label: string }[] = [
+  { id: 'presentation', icon: Sparkles, label: 'Love ✨' },
   { id: 'chat', icon: MessageCircle, label: 'Chat' },
   { id: 'itinerary', icon: Map, label: 'Itinerario' },
-  { id: 'documents', icon: FileText, label: 'Documentos' },
+  { id: 'documents', icon: FileText, label: 'Docs' },
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
@@ -24,7 +25,7 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
             <button
               key={id}
               onClick={() => onTabChange(id)}
-              className={`touch-target relative flex flex-col items-center justify-center gap-0.5 px-5 py-1.5 rounded-2xl transition-all duration-300 ${
+              className={`touch-target relative flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all duration-300 ${
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
