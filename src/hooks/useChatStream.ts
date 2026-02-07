@@ -19,15 +19,24 @@ const initialMessages: RichMessage[] = [
   {
     id: '1',
     role: 'assistant',
-    content: '¡Hola Vicente! ✨ Soy tu asistente de viajes. Puedo **crear eventos**, **mostrar tu itinerario visual** o **sugerir experiencias románticas**. ¿En qué te ayudo?',
+    content: '¡Hola! ✨ Soy tu asistente de viajes. Cuéntame sobre tu viaje — ¿a dónde quieren ir? Puedo **crear eventos**, **mostrar tu itinerario** o **sugerir experiencias románticas**.',
     timestamp: new Date().toISOString(),
   },
 ];
+
+export interface TripContext {
+  coupleNames?: [string, string];
+  startDate?: string | null;
+  endDate?: string | null;
+  countries?: string[];
+  eventCount?: number;
+}
 
 export const useChatStream = () => {
   const [messages, setMessages] = useState<RichMessage[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const pendingToolCalls = useRef<ToolCallResult[]>([]);
+  const tripContextRef = useRef<TripContext>({});
 
   const streamChat = useCallback(async (allMessages: AiMsg[]) => {
     const resp = await fetch(CHAT_URL, {
@@ -36,7 +45,7 @@ export const useChatStream = () => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: allMessages }),
+      body: JSON.stringify({ messages: allMessages, tripContext: tripContextRef.current }),
     });
 
     if (!resp.ok) {
@@ -179,5 +188,9 @@ export const useChatStream = () => {
     }
   }, [isLoading, messages, streamChat]);
 
-  return { messages, isLoading, sendMessage, setMessages };
+  const setTripContext = useCallback((ctx: TripContext) => {
+    tripContextRef.current = ctx;
+  }, []);
+
+  return { messages, isLoading, sendMessage, setMessages, setTripContext };
 };

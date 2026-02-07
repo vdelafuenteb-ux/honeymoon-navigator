@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { useChatStream, ToolCallResult } from '@/hooks/useChatStream';
+import { useChatStream, ToolCallResult, TripContext } from '@/hooks/useChatStream';
 import { SuggestionItem, QuickActions } from '@/components/chat/ChatRichBlocks';
 import ChatMessageBubble from '@/components/chat/ChatMessageBubble';
 import { TripEvent, TripCountry } from '@/types/trip';
@@ -10,15 +10,20 @@ import { TripEvent, TripCountry } from '@/types/trip';
 interface ChatViewProps {
   itinerary: TripCountry[];
   onAddEvent?: (event: Partial<TripEvent> & { country: string }) => void;
+  tripContext?: TripContext;
 }
 
-const ChatView = ({ itinerary, onAddEvent }: ChatViewProps) => {
-  const { messages, isLoading, sendMessage } = useChatStream();
+const ChatView = ({ itinerary, onAddEvent, tripContext }: ChatViewProps) => {
+  const { messages, isLoading, sendMessage, setTripContext } = useChatStream();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const allEvents = itinerary.flatMap(c => c.days.flatMap(d => d.events));
 
+  // Keep trip context in sync
+  useEffect(() => {
+    if (tripContext) setTripContext(tripContext);
+  }, [tripContext, setTripContext]);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
