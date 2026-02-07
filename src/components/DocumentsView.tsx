@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { FileText, Upload, Search, Loader2 } from 'lucide-react';
+import { FileText, Upload, Search, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -56,7 +56,7 @@ const DocumentsView = () => {
       };
 
       setDocuments(prev => [newDoc, ...prev]);
-      toast.success('Documento subido correctamente');
+      toast.success('✨ Documento subido correctamente');
     } catch (err) {
       console.error(err);
       toast.error('Error al subir documento');
@@ -79,7 +79,7 @@ const DocumentsView = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar documentos..."
-            className="w-full bg-secondary text-sm rounded-xl pl-10 pr-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full bg-secondary text-sm rounded-2xl pl-10 pr-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 border border-border"
           />
         </div>
       </div>
@@ -95,7 +95,7 @@ const DocumentsView = () => {
       <button
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className="w-full border-2 border-dashed border-border rounded-2xl p-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-colors mb-4 disabled:opacity-50"
+        className="w-full border-2 border-dashed border-rose-light/50 rounded-2xl p-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-all mb-4 disabled:opacity-50 bg-rose-subtle/30 hover:bg-rose-subtle/60"
       >
         {uploading ? (
           <>
@@ -104,14 +104,17 @@ const DocumentsView = () => {
           </>
         ) : (
           <>
-            <Upload className="w-6 h-6" />
-            <span className="text-sm font-medium">Subir comprobante de reserva</span>
-            <span className="text-xs">PDF, JPG o PNG · La IA extraerá los datos automáticamente</span>
+            <div className="w-12 h-12 rounded-full gradient-romantic flex items-center justify-center mb-1">
+              <Upload className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-sm font-semibold text-foreground">Subir comprobante de reserva</span>
+            <span className="text-xs">PDF, JPG o PNG · La IA extraerá los datos automáticamente ✨</span>
           </>
         )}
       </button>
 
-      <h3 className="text-sm font-semibold text-foreground mb-3">
+      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
+        <Sparkles className="w-3.5 h-3.5 text-gold" />
         Documentos verificados ({filtered.length})
       </h3>
       <AnimatePresence>
@@ -123,9 +126,9 @@ const DocumentsView = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ delay: i * 0.04 }}
-              className="glass-card rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:shadow-lg transition-all"
+              className="glass-card rounded-2xl p-3 flex items-center gap-3 cursor-pointer hover:shadow-[var(--shadow-romantic)] transition-all border border-border hover:border-rose-light/40"
             >
-              <div className="p-2 rounded-lg bg-status-confirmed-bg">
+              <div className="p-2 rounded-xl bg-status-confirmed-bg">
                 <FileText className="w-4 h-4 text-status-confirmed" />
               </div>
               <div className="flex-1 min-w-0">

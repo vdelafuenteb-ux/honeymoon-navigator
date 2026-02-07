@@ -2,7 +2,7 @@ import { TripCountry } from '@/types/trip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import EventCard from './EventCard';
 import { TripEvent } from '@/types/trip';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 interface TimelineViewProps {
@@ -24,19 +24,19 @@ const TimelineView = ({ itinerary, onEditEvent }: TimelineViewProps) => {
             <AccordionItem
               key={country.country}
               value={country.country}
-              className="glass-card rounded-2xl overflow-hidden border-0"
+              className="glass-card rounded-2xl overflow-hidden border border-border hover:border-rose-light/40 transition-colors"
             >
               <AccordionTrigger className="px-4 py-4 hover:no-underline [&[data-state=open]>div>.chevron]:rotate-90">
                 <div className="flex items-center gap-3 w-full">
-                  <span className="text-2xl">{country.flag}</span>
+                  <span className="text-3xl drop-shadow-sm">{country.flag}</span>
                   <div className="flex-1 text-left">
-                    <h3 className="font-display text-lg font-semibold text-foreground">{country.country}</h3>
+                    <h3 className="font-display text-lg font-semibold text-foreground italic">{country.country}</h3>
                     <p className="text-xs text-muted-foreground">{country.dateRange} · {totalEvents} eventos</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-status-confirmed rounded-full transition-all"
+                        className="h-full rounded-full transition-all bg-gradient-to-r from-rose-glow to-gold"
                         style={{ width: `${totalEvents > 0 ? (confirmedEvents / totalEvents) * 100 : 0}%` }}
                       />
                     </div>
@@ -67,11 +67,11 @@ const DayAccordion = ({ country, onEditEvent }: { country: TripCountry; onEditEv
   return (
     <Accordion type="single" collapsible value={openDay} onValueChange={setOpenDay} className="space-y-2">
       {country.days.map((day) => (
-        <AccordionItem key={day.date} value={day.date} className="border border-border rounded-xl overflow-hidden bg-background/50">
+        <AccordionItem key={day.date} value={day.date} className="border border-border rounded-2xl overflow-hidden bg-background/50">
           <AccordionTrigger className="px-3 py-2.5 hover:no-underline text-sm">
             <div className="flex items-center gap-2 w-full">
-              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                <span className="text-xs font-bold text-secondary-foreground">
+              <div className="w-8 h-8 rounded-xl bg-rose-subtle flex items-center justify-center">
+                <span className="text-xs font-bold text-primary">
                   {new Date(day.date + 'T12:00:00').getDate()}
                 </span>
               </div>
