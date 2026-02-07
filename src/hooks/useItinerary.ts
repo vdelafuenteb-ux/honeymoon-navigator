@@ -35,6 +35,41 @@ export const useItinerary = () => {
     );
   }, []);
 
+  const addEvent = useCallback((eventData: Partial<TripEvent> & { country: string }) => {
+    const newEvent: TripEvent = {
+      id: `chat-${Date.now()}`,
+      type: (eventData.type as TripEvent['type']) || 'activity',
+      status: (eventData.status as TripEvent['status']) || 'draft',
+      title: eventData.title || 'Nuevo evento',
+      location: eventData.location || '',
+      datetime_start: eventData.datetime_start || new Date().toISOString(),
+      datetime_end: eventData.datetime_end,
+      notes: eventData.notes || '',
+      source: 'user_chat',
+      cost_estimated: eventData.cost_estimated,
+      currency: eventData.currency || 'USD',
+    };
+
+    setItinerary(prev => {
+      const countryIdx = prev.findIndex(c => c.country === eventData.country);
+      if (countryIdx === -1) return prev;
+
+      const dateStr = newEvent.datetime_start.slice(0, 10);
+      const updated = [...prev];
+      const country = { ...updated[countryIdx], days: [...updated[countryIdx].days] };
+
+      const dayIdx = country.days.findIndex(d => d.date === dateStr);
+      if (dayIdx !== -1) {
+        country.days[dayIdx] = { ...country.days[dayIdx], events: [...country.days[dayIdx].events, newEvent] };
+      } else {
+        country.days = [...country.days, { date: dateStr, events: [newEvent] }].sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      updated[countryIdx] = country;
+      return updated;
+    });
+  }, []);
+
   const updateEventStatus = useCallback((eventId: string, status: 'draft' | 'confirmed', attachmentUrl?: string) => {
     updateEvent(eventId, { status, attachment_url: attachmentUrl });
   }, [updateEvent]);
@@ -124,5 +159,5 @@ export const useItinerary = () => {
     }
   }, [updateEventStatus, updateEvent, parseReceipt]);
 
-  return { itinerary, updateEventStatus, updateEvent, uploadReceipt };
+  return { itinerary, updateEventStatus, updateEvent, uploadReceipt, addEvent };
 };

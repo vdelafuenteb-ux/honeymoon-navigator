@@ -22,7 +22,7 @@ const tabVariants = {
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('itinerary');
   const [editingEvent, setEditingEvent] = useState<TripEvent | null>(null);
-  const { itinerary, uploadReceipt } = useItinerary();
+  const { itinerary, uploadReceipt, addEvent } = useItinerary();
 
   // Presentation mode is fullscreen — hide header & nav
   if (activeTab === 'presentation') {
@@ -51,7 +51,7 @@ const Index = () => {
             {activeTab === 'itinerary' && (
               <TimelineView itinerary={itinerary} onEditEvent={setEditingEvent} />
             )}
-            {activeTab === 'chat' && <ChatView />}
+            {activeTab === 'chat' && <ChatView itinerary={itinerary} onAddEvent={addEvent} />}
             {activeTab === 'documents' && <DocumentsView />}
           </motion.div>
         </AnimatePresence>
