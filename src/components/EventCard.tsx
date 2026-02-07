@@ -1,6 +1,6 @@
 import { TripEvent } from '@/types/trip';
 import { eventTypeConfig } from '@/lib/eventConfig';
-import { CheckCircle2, Clock, Paperclip } from 'lucide-react';
+import { CheckCircle2, Clock, Paperclip, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface EventCardProps {
@@ -20,10 +20,10 @@ const EventCard = ({ event, index, onEdit }: EventCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
       onClick={() => onEdit?.(event)}
-      className="glass-card rounded-xl p-3.5 cursor-pointer hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
+      className="group glass-card rounded-2xl p-3.5 cursor-pointer hover:shadow-[var(--shadow-romantic)] transition-all duration-300 active:scale-[0.98] border border-border hover:border-rose-light/50"
     >
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
+        <div className={`p-2.5 rounded-xl bg-rose-subtle ${config.color} transition-colors`}>
           <Icon className="w-4 h-4" />
         </div>
 
@@ -51,7 +51,7 @@ const EventCard = ({ event, index, onEdit }: EventCardProps) => {
           </div>
 
           {event.notes && (
-            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">{event.notes}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1 italic">{event.notes}</p>
           )}
         </div>
       </div>
