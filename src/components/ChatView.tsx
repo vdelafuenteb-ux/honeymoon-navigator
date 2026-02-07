@@ -1,7 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Heart } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { ChatMessage } from '@/types/trip';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+type AiMsg = { role: 'user' | 'assistant'; content: string };
 
 const initialMessages: ChatMessage[] = [
   {
@@ -15,15 +20,106 @@ const initialMessages: ChatMessage[] = [
 const ChatView = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const streamChat = useCallback(async (allMessages: AiMsg[]) => {
+    const resp = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: allMessages }),
+    });
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      const errMsg = errData.error || 'Error al contactar el asistente';
+      if (resp.status === 429) toast.error('Demasiadas solicitudes, espera un momento');
+      else if (resp.status === 402) toast.error('Créditos de IA agotados');
+      else toast.error(errMsg);
+      throw new Error(errMsg);
+    }
+
+    if (!resp.body) throw new Error('No stream body');
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let assistantContent = '';
+    const assistantId = Date.now().toString();
+
+    // Create the assistant message placeholder
+    setMessages(prev => [...prev, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    }]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let newlineIdx: number;
+      while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+        let line = buffer.slice(0, newlineIdx);
+        buffer = buffer.slice(newlineIdx + 1);
+        if (line.endsWith('\r')) line = line.slice(0, -1);
+        if (line.startsWith(':') || line.trim() === '') continue;
+        if (!line.startsWith('data: ')) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === '[DONE]') break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            const snapshot = assistantContent;
+            setMessages(prev =>
+              prev.map(m => m.id === assistantId ? { ...m, content: snapshot } : m)
+            );
+          }
+        } catch {
+          buffer = line + '\n' + buffer;
+          break;
+        }
+      }
+    }
+
+    // Final flush
+    if (buffer.trim()) {
+      for (let raw of buffer.split('\n')) {
+        if (!raw) continue;
+        if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+        if (!raw.startsWith('data: ')) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            const snapshot = assistantContent;
+            setMessages(prev =>
+              prev.map(m => m.id === assistantId ? { ...m, content: snapshot } : m)
+            );
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || isLoading) return;
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -32,19 +128,21 @@ const ChatView = () => {
     };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setIsTyping(true);
+    setIsLoading(true);
 
-    setTimeout(() => {
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: getMockResponse(input),
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, aiMsg]);
-      setIsTyping(false);
-    }, 1500);
-  };
+    const aiMessages: AiMsg[] = [
+      ...messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      { role: 'user', content: input },
+    ];
+
+    try {
+      await streamChat(aiMessages);
+    } catch (e) {
+      console.error('Chat error:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, messages, streamChat]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] max-w-2xl mx-auto">
@@ -55,7 +153,7 @@ const ChatView = () => {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Asistente de Viajes ✨</h3>
-            <p className="text-[10px] text-muted-foreground">Tu guía romántica · En línea</p>
+            <p className="text-[10px] text-muted-foreground">Powered by AI · En línea</p>
           </div>
         </div>
       </div>
@@ -69,7 +167,7 @@ const ChatView = () => {
               animate={{ opacity: 1, y: 0 }}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === 'user'
                   ? 'gradient-hero text-primary-foreground rounded-br-md shadow-[var(--shadow-romantic)]'
                   : 'bg-secondary text-secondary-foreground rounded-bl-md border border-border'
@@ -79,7 +177,7 @@ const ChatView = () => {
             </motion.div>
           ))}
         </AnimatePresence>
-        {isTyping && (
+        {isLoading && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex justify-start">
             <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3 border border-border">
               <div className="flex gap-1.5">
@@ -98,35 +196,22 @@ const ChatView = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
             placeholder="Escribe una idea para tu viaje... ✨"
-            className="flex-1 bg-secondary text-sm rounded-2xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 border border-border transition-all"
+            disabled={isLoading}
+            className="flex-1 bg-secondary text-sm rounded-2xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 border border-border transition-all disabled:opacity-50"
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
             className="touch-target gradient-hero text-primary-foreground p-3 rounded-2xl disabled:opacity-40 transition-all active:scale-95 shadow-[var(--shadow-romantic)]"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
       </div>
     </div>
   );
 };
-
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('restaurante') || lower.includes('cena') || lower.includes('comer')) {
-    return '🍽️ ¡Excelente idea! Para esa fecha te recomiendo:\n\n1. **Nobu Dubai** - Fusión japonesa de clase mundial\n2. **Zuma** - Cocina japonesa contemporánea\n3. **Pierchic** - Mariscos con vista al océano 🌊\n\n¿Quieres que agregue alguno al itinerario? 💕';
-  }
-  if (lower.includes('hotel') || lower.includes('alojamiento')) {
-    return '🏨 He revisado las opciones más románticas para esas fechas. Te sugiero buscar en la zona premium. ¿Quieres que lo agregue como borrador al itinerario? Recuerda: necesitarás subir la confirmación para validarlo ✨';
-  }
-  if (lower.includes('vuelo') || lower.includes('avión')) {
-    return '✈️ Perfecto. He tomado nota del vuelo. Lo agregaré como borrador. Para confirmarlo, necesitaré que subas el e-ticket o confirmación de la aerolínea. ¿Necesitas conexiones alternativas? 🌟';
-  }
-  return '📝 ¡Entendido! Lo agregaré al itinerario como borrador. Recuerda que puedes subir el comprobante de reserva para cambiar su estado a "Confirmado". ¿Algo más para hacer este viaje aún más mágico? ✨💕';
-}
 
 export default ChatView;
