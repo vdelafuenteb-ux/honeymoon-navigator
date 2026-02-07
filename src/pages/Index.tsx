@@ -76,7 +76,19 @@ const Index = () => {
             {activeTab === 'itinerary' && (
               <TimelineView itinerary={itinerary} onEditEvent={setEditingEvent} />
             )}
-            {activeTab === 'chat' && <ChatView itinerary={itinerary} onAddEvent={addEvent} />}
+            {activeTab === 'chat' && (
+              <ChatView
+                itinerary={itinerary}
+                onAddEvent={addEvent}
+                tripContext={{
+                  coupleNames: config.coupleNames,
+                  startDate: config.startDate,
+                  endDate: config.endDate,
+                  countries: itinerary.map(c => c.country),
+                  eventCount: stats.eventsCount,
+                }}
+              />
+            )}
             {activeTab === 'documents' && <DocumentsView />}
           </motion.div>
         </AnimatePresence>

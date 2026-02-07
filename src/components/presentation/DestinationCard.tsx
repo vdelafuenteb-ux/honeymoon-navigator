@@ -1,104 +1,67 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { TripCountry } from '@/types/trip';
-import { destinationHeroImages, destinationGuides, GuidePlace } from '@/data/destinationImages';
-import { CheckCircle2, Clock, MapPin, Sparkles, ExternalLink, Camera, Utensils, Lightbulb, ChevronDown, Navigation } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, Navigation, ExternalLink, ChevronDown, Calendar, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useEventImage } from '@/hooks/useEventImage';
+import { eventTypeConfig } from '@/lib/eventConfig';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface DestinationCardProps {
   country: TripCountry;
   index: number;
 }
 
-const categoryConfig: Record<string, { icon: typeof MapPin; label: string; colorClass: string }> = {
-  attraction: { icon: Sparkles, label: 'Atracción', colorClass: 'bg-lavender-light text-lavender' },
-  food: { icon: Utensils, label: 'Restaurante', colorClass: 'bg-gold-subtle text-accent' },
-  photo: { icon: Camera, label: 'Foto Spot', colorClass: 'bg-rose-subtle text-primary' },
-  tip: { icon: Lightbulb, label: 'Tip', colorClass: 'bg-status-confirmed-bg text-status-confirmed' },
-};
-
 const mapsUrl = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
-const PlaceCard = ({ place, index }: { place: GuidePlace; index: number }) => {
-  const config = categoryConfig[place.category] || categoryConfig.attraction;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: 0.05 * index, type: 'spring', bounce: 0.2 }}
-      className="bg-card/90 backdrop-blur-sm rounded-2xl border border-border p-3 shadow-[var(--shadow-soft)]"
-    >
-      <div className="flex items-start gap-2.5">
-        <span className="text-xl mt-0.5">{place.emoji}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <p className="text-sm font-semibold text-foreground truncate">{place.name}</p>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${config.colorClass}`}>
-              {config.label}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">{place.description}</p>
-          {place.tip && (
-            <div className="mt-1.5 flex items-start gap-1.5 bg-gold-subtle/50 rounded-lg px-2 py-1.5">
-              <Lightbulb className="w-3 h-3 text-accent mt-0.5 shrink-0" />
-              <p className="text-[10px] text-accent italic leading-relaxed">{place.tip}</p>
-            </div>
-          )}
-          <a
-            href={mapsUrl(place.mapsQuery)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-primary font-medium hover:underline"
-          >
-            <Navigation className="w-2.5 h-2.5" />
-            Ver en Google Maps
-            <ExternalLink className="w-2 h-2" />
-          </a>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 const DestinationCard = ({ country, index }: DestinationCardProps) => {
-  const heroImage = destinationHeroImages[country.country] || '';
-  const guide = destinationGuides[country.country];
-  const [showGuide, setShowGuide] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  // Generate AI image based on the country name
+  const imagePrompt = `${country.country} iconic landmark, travel destination`;
+  const { imageUrl: heroImage, loading: heroLoading } = useEventImage(imagePrompt);
 
   const allEvents = country.days.flatMap(d => d.events);
   const confirmed = allEvents.filter(e => e.status === 'confirmed');
   const drafts = allEvents.filter(e => e.status === 'draft');
-  const topConfirmed = confirmed.slice(0, 3);
-
-  const attractions = guide?.places.filter(p => p.category === 'attraction') || [];
-  const food = guide?.places.filter(p => p.category === 'food') || [];
-  const photos = guide?.places.filter(p => p.category === 'photo') || [];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.7, delay: index * 0.08, ease: 'easeOut' }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.7, delay: index * 0.1, ease: 'easeOut' }}
       className="mx-4 mb-8"
     >
-      {/* Hero image card */}
-      <div className="relative rounded-3xl overflow-hidden shadow-[var(--shadow-elevated)]" style={{ minHeight: '55vh' }}>
+      {/* Hero image */}
+      <div className="relative rounded-3xl overflow-hidden shadow-[var(--shadow-elevated)]" style={{ minHeight: '60vh' }}>
         <div className="absolute inset-0">
-          <img src={heroImage} alt={country.country} className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {heroLoading ? (
+            <div className="w-full h-full bg-gradient-to-br from-rose-subtle via-background to-gold-subtle flex items-center justify-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              >
+                <Sparkles className="w-8 h-8 text-muted-foreground/30" />
+              </motion.div>
+            </div>
+          ) : heroImage ? (
+            <img src={heroImage} alt={country.country} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-rose-subtle via-background to-gold-subtle" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
         </div>
 
-        <div className="relative z-10 flex flex-col justify-end p-5 pb-6" style={{ minHeight: '55vh' }}>
+        <div className="relative z-10 flex flex-col justify-end p-6" style={{ minHeight: '60vh' }}>
           <motion.span
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 w-fit mb-2"
+            className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 w-fit mb-3"
           >
-            <span className="text-lg">{country.flag}</span>
+            <span className="text-xl">{country.flag}</span>
             <span className="text-xs text-white/90 font-medium">{country.dateRange}</span>
           </motion.span>
 
@@ -107,155 +70,199 @@ const DestinationCard = ({ country, index }: DestinationCardProps) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
-            className="text-4xl font-display font-bold text-white italic mb-1"
+            className="text-5xl font-display font-bold text-white italic mb-3"
           >
             {country.country}
           </motion.h2>
 
-          {guide && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="text-white/70 text-sm italic mb-4 max-w-xs"
-            >
-              {guide.tagline}
-            </motion.p>
-          )}
-
+          {/* Stats chips */}
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="flex items-center gap-2 mb-3"
+            transition={{ delay: 0.4 }}
+            className="flex flex-wrap items-center gap-2 mb-4"
           >
             <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/20">
-              <CheckCircle2 className="w-3 h-3 text-white/90" />
-              <span className="text-[10px] text-white/80 font-semibold">{confirmed.length} listos ✓</span>
+              <Calendar className="w-3 h-3 text-white/80" />
+              <span className="text-[10px] text-white/80 font-semibold">{country.days.length} días</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/20">
+              <CheckCircle2 className="w-3 h-3 text-white/80" />
+              <span className="text-[10px] text-white/80 font-semibold">{confirmed.length} listos</span>
             </div>
             {drafts.length > 0 && (
               <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
-                <Clock className="w-3 h-3 text-white/70" />
-                <span className="text-[10px] text-white/70 font-semibold">{drafts.length} pendientes</span>
+                <Clock className="w-3 h-3 text-white/60" />
+                <span className="text-[10px] text-white/60 font-semibold">{drafts.length} pendientes</span>
               </div>
             )}
           </motion.div>
 
-          {topConfirmed.length > 0 && (
-            <div className="space-y-1.5">
-              {topConfirmed.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.6 + i * 0.08 }}
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/10"
-                >
-                  <CheckCircle2 className="w-3 h-3 text-white/80 shrink-0" />
-                  <span className="text-[11px] text-white/85 truncate">{event.title}</span>
-                </motion.div>
-              ))}
-            </div>
+          {/* Top events preview */}
+          {allEvents.slice(0, 3).map((event, i) => {
+            const cfg = eventTypeConfig[event.type];
+            return (
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, x: -15 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 + i * 0.08 }}
+                className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-xl border border-white/10 mb-1.5"
+              >
+                <span className="text-sm">{cfg.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] text-white/90 font-medium truncate block">{event.title}</span>
+                  <span className="text-[9px] text-white/50">{event.location}</span>
+                </div>
+                {event.status === 'confirmed' && <CheckCircle2 className="w-3 h-3 text-[hsl(var(--status-confirmed))]/80 shrink-0" />}
+              </motion.div>
+            );
+          })}
+          {allEvents.length > 3 && (
+            <p className="text-[10px] text-white/40 mt-1 text-center italic">
+              +{allEvents.length - 3} más
+            </p>
           )}
         </div>
       </div>
 
-      {/* Guide section — expandable */}
-      {guide && (
-        <div className="mt-3">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowGuide(!showGuide)}
-            className="w-full bg-card rounded-2xl border border-border p-3.5 flex items-center gap-3 shadow-[var(--shadow-soft)] hover:border-rose-light/40 transition-colors"
-          >
-            <div className="w-9 h-9 rounded-xl gradient-romantic flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-semibold text-foreground">Guía de {country.country}</p>
-              <p className="text-[10px] text-muted-foreground">{guide.places.length} lugares · Tips · Restaurantes · Fotos</p>
-            </div>
-            <motion.div animate={{ rotate: showGuide ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+      {/* Day-by-day expandable section */}
+      <div className="mt-3">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setExpanded(!expanded)}
+          className="w-full bg-card rounded-2xl border border-border p-3.5 flex items-center gap-3 shadow-[var(--shadow-soft)] hover:border-rose-light/40 transition-colors"
+        >
+          <div className="w-9 h-9 rounded-xl gradient-romantic flex items-center justify-center shrink-0">
+            <Calendar className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Itinerario día a día</p>
+            <p className="text-[10px] text-muted-foreground">{country.days.length} días · {allEvents.length} eventos planificados</p>
+          </div>
+          <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          </motion.div>
+        </motion.button>
+
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 space-y-4">
+                {country.days.map((day) => (
+                  <DaySlide key={day.date} date={day.date} events={day.events} countryName={country.country} />
+                ))}
+              </div>
             </motion.div>
-          </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+};
 
-          <AnimatePresence>
-            {showGuide && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-3 space-y-4">
-                  {/* Transport tip */}
-                  <div className="bg-card rounded-2xl border border-border p-3 shadow-[var(--shadow-soft)]">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">🚀</span>
-                      <div>
-                        <p className="text-xs font-semibold text-foreground mb-0.5">Cómo llegar</p>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">{guide.transportTip}</p>
-                      </div>
-                    </div>
-                  </div>
+// A beautiful day card with event details
+const DaySlide = ({ date, events, countryName }: { date: string; events: any[]; countryName: string }) => {
+  const formatted = format(parseISO(date + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es });
 
-                  {/* Must try */}
-                  <div className="bg-gold-subtle rounded-2xl border border-gold-light/30 p-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">💡</span>
-                      <div>
-                        <p className="text-xs font-semibold text-foreground mb-0.5">No se pierdan</p>
-                        <p className="text-[11px] text-accent italic leading-relaxed">{guide.mustTry}</p>
-                      </div>
-                    </div>
-                  </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-card rounded-2xl border border-border overflow-hidden shadow-[var(--shadow-soft)]"
+    >
+      <div className="bg-rose-subtle/50 px-4 py-2.5 border-b border-border">
+        <p className="text-xs font-semibold text-foreground capitalize">{formatted}</p>
+      </div>
+      <div className="p-3 space-y-2">
+        {events.map((event) => (
+          <EventSlide key={event.id} event={event} />
+        ))}
+      </div>
+    </motion.div>
+  );
+};
 
-                  {/* Attractions */}
-                  {attractions.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5 px-1">
-                        <Sparkles className="w-3 h-3 text-lavender" /> Atracciones imperdibles
-                      </p>
-                      <div className="space-y-2">
-                        {attractions.map((p, i) => <PlaceCard key={p.name} place={p} index={i} />)}
-                      </div>
-                    </div>
-                  )}
+// Individual event with AI image and details
+const EventSlide = ({ event }: { event: any }) => {
+  const cfg = eventTypeConfig[event.type] || eventTypeConfig.activity;
+  const { imageUrl, loading } = useEventImage(
+    `${event.title} ${event.location}`,
+    true
+  );
 
-                  {/* Restaurants */}
-                  {food.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5 px-1">
-                        <Utensils className="w-3 h-3 text-accent" /> Dónde comer
-                      </p>
-                      <div className="space-y-2">
-                        {food.map((p, i) => <PlaceCard key={p.name} place={p} index={i} />)}
-                      </div>
-                    </div>
-                  )}
+  const timeStr = event.datetime_start
+    ? format(parseISO(event.datetime_start), 'HH:mm')
+    : '';
 
-                  {/* Photo spots */}
-                  {photos.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5 px-1">
-                        <Camera className="w-3 h-3 text-primary" /> Spots para fotos
-                      </p>
-                      <div className="space-y-2">
-                        {photos.map((p, i) => <PlaceCard key={p.name} place={p} index={i} />)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      className="flex gap-3 p-2 rounded-xl hover:bg-muted/30 transition-colors"
+    >
+      {/* Image thumbnail */}
+      <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-muted">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+              <Sparkles className="w-3 h-3 text-muted-foreground/30" />
+            </motion.div>
+          </div>
+        ) : imageUrl ? (
+          <img src={imageUrl} alt={event.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-lg">
+            {cfg.emoji}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+            {timeStr}
+          </span>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+            event.status === 'confirmed' ? 'status-confirmed' : 'status-draft'
+          }`}>
+            {event.status === 'confirmed' ? '✓ Listo' : '⏳ Pendiente'}
+          </span>
         </div>
-      )}
+        <p className="text-sm font-semibold text-foreground truncate">{event.title}</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <MapPin className="w-2.5 h-2.5 text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground truncate">{event.location}</p>
+        </div>
+        {event.notes && (
+          <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 truncate">
+            {event.notes}
+          </p>
+        )}
+        {event.location && (
+          <a
+            href={mapsUrl(event.location)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-[9px] text-primary font-medium hover:underline"
+          >
+            <Navigation className="w-2 h-2" />
+            Google Maps
+            <ExternalLink className="w-2 h-2" />
+          </a>
+        )}
+      </div>
     </motion.div>
   );
 };
