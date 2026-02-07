@@ -4,22 +4,33 @@ import { useEffect, useState } from 'react';
 
 interface CountdownHeroProps {
   daysRemaining: number;
+  totalDays: number;
   percentConfirmed: number;
   totalEvents: number;
   confirmedEvents: number;
+  coupleNames: [string, string];
+  countriesCount: number;
   onEnter: () => void;
 }
 
-const CountdownHero = ({ daysRemaining, percentConfirmed, totalEvents, confirmedEvents, onEnter }: CountdownHeroProps) => {
+const CountdownHero = ({ daysRemaining, totalDays, percentConfirmed, totalEvents, confirmedEvents, coupleNames, countriesCount, onEnter }: CountdownHeroProps) => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const namesLabel = coupleNames[0] && coupleNames[1]
+    ? `${coupleNames[0]} & ${coupleNames[1]}`
+    : 'Nuestra Gran Aventura';
+
+  const subtitle = [
+    totalDays > 0 ? `${totalDays} días` : null,
+    countriesCount > 0 ? `${countriesCount} países` : null,
+    'Un amor infinito ✨',
+  ].filter(Boolean).join(' · ');
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-background px-6">
-      {/* Background sparkles */}
       <div className="absolute inset-0 sparkle-bg opacity-60" />
-      
-      {/* Floating decorative elements */}
+
       <motion.div
         animate={{ y: [0, -12, 0], rotate: [0, 5, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
@@ -34,15 +45,7 @@ const CountdownHero = ({ daysRemaining, percentConfirmed, totalEvents, confirmed
       >
         <Sparkles className="w-6 h-6" />
       </motion.div>
-      <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute bottom-32 right-8 text-lavender/20"
-      >
-        <Heart className="w-5 h-5 fill-current" />
-      </motion.div>
 
-      {/* Main content */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={mounted ? { opacity: 1, y: 0 } : {}}
@@ -64,7 +67,7 @@ const CountdownHero = ({ daysRemaining, percentConfirmed, totalEvents, confirmed
           transition={{ delay: 0.5 }}
           className="text-sm uppercase tracking-[0.3em] text-muted-foreground font-medium mb-2"
         >
-          Vicente & Pareja
+          {namesLabel}
         </motion.p>
 
         <motion.h1
@@ -85,7 +88,7 @@ const CountdownHero = ({ daysRemaining, percentConfirmed, totalEvents, confirmed
           transition={{ delay: 0.9 }}
           className="text-muted-foreground mt-3 text-sm"
         >
-          45 días · 6 países · Un amor infinito ✨
+          {subtitle}
         </motion.p>
 
         {/* Countdown */}
@@ -95,45 +98,54 @@ const CountdownHero = ({ daysRemaining, percentConfirmed, totalEvents, confirmed
           transition={{ delay: 1.1, type: 'spring', bounce: 0.3 }}
           className="mt-8 bg-card/80 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-[var(--shadow-romantic)]"
         >
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Faltan</p>
-          <p className="text-6xl font-display font-bold text-primary italic">{daysRemaining}</p>
-          <p className="text-sm text-muted-foreground mt-1">días para nuestra aventura 💕</p>
+          {daysRemaining > 0 ? (
+            <>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Faltan</p>
+              <p className="text-6xl font-display font-bold text-primary italic">{daysRemaining}</p>
+              <p className="text-sm text-muted-foreground mt-1">días para nuestra aventura 💕</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">🎉</p>
+              <p className="text-3xl font-display font-bold text-primary italic">¡La aventura comienza!</p>
+            </>
+          )}
 
-          {/* Progress bar */}
-          <div className="mt-5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <span className="flex items-center gap-1">
-                <Plane className="w-3 h-3" />
-                Nuestro sueño
-              </span>
-              <span className="font-semibold text-primary">{percentConfirmed}%</span>
-            </div>
-            <div className="h-3 bg-muted rounded-full overflow-hidden relative">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${percentConfirmed}%` }}
-                transition={{ delay: 1.5, duration: 1.5, ease: 'easeOut' }}
-                className="h-full rounded-full gradient-romantic relative"
-              >
-                <motion.div
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2"
-                >
-                  <span className="text-xs">✈️</span>
-                </motion.div>
-              </motion.div>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <span className="text-xs">💕</span>
+          {totalEvents > 0 && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span className="flex items-center gap-1">
+                  <Plane className="w-3 h-3" />
+                  Nuestro sueño
+                </span>
+                <span className="font-semibold text-primary">{percentConfirmed}%</span>
               </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden relative">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percentConfirmed}%` }}
+                  transition={{ delay: 1.5, duration: 1.5, ease: 'easeOut' }}
+                  className="h-full rounded-full gradient-romantic relative"
+                >
+                  <motion.div
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2"
+                  >
+                    <span className="text-xs">✈️</span>
+                  </motion.div>
+                </motion.div>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <span className="text-xs">💕</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5 text-center italic">
+                {confirmedEvents} de {totalEvents} experiencias confirmadas
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5 text-center italic">
-              {confirmedEvents} de {totalEvents} experiencias confirmadas
-            </p>
-          </div>
+          )}
         </motion.div>
 
-        {/* Enter button */}
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
