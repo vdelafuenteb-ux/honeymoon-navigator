@@ -13,13 +13,7 @@ interface Doc {
   url?: string;
 }
 
-const initialDocs: Doc[] = [
-  { id: '1', name: 'Vuelo SCL-ATH LATAM.pdf', type: 'flight', date: '2026-03-03', verified: true },
-  { id: '2', name: 'Hotel Grande Bretagne.pdf', type: 'hotel', date: '2026-03-03', verified: true },
-  { id: '3', name: 'Ferry Blue Star.pdf', type: 'transport', date: '2026-03-07', verified: true },
-  { id: '4', name: 'Emirates ATH-DXB.pdf', type: 'flight', date: '2026-03-11', verified: true },
-  { id: '5', name: 'Aman Tokyo Confirmation.pdf', type: 'hotel', date: '2026-04-08', verified: true },
-];
+const initialDocs: Doc[] = [];
 
 const DocumentsView = () => {
   const [documents, setDocuments] = useState<Doc[]>(initialDocs);
