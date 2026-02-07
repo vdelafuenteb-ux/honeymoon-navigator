@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TripCountry } from '@/types/trip';
-import { tripStats } from '@/data/mockItinerary';
+import { TripCountry, TripStats } from '@/types/trip';
 import CountdownHero from './CountdownHero';
 import DestinationCard from './DestinationCard';
 import WishlistSection from './WishlistSection';
@@ -9,10 +8,12 @@ import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
 
 interface PresentationViewProps {
   itinerary: TripCountry[];
+  stats: TripStats;
+  coupleNames: [string, string];
   onBack: () => void;
 }
 
-const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
+const PresentationView = ({ itinerary, stats, coupleNames, onBack }: PresentationViewProps) => {
   const [entered, setEntered] = useState(false);
 
   const allEvents = useMemo(
@@ -22,6 +23,8 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
   const confirmed = allEvents.filter(e => e.status === 'confirmed');
   const drafts = allEvents.filter(e => e.status === 'draft');
   const percent = allEvents.length > 0 ? Math.round((confirmed.length / allEvents.length) * 100) : 0;
+
+  const isEmpty = itinerary.length === 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,12 +42,23 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
         {!entered ? (
           <motion.div key="hero" exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.6 }}>
             <CountdownHero
-              daysRemaining={tripStats.daysRemaining}
+              daysRemaining={stats.daysRemaining}
+              totalDays={stats.totalDays}
               percentConfirmed={percent}
               totalEvents={allEvents.length}
               confirmedEvents={confirmed.length}
+              coupleNames={coupleNames}
+              countriesCount={stats.countriesCount}
               onEnter={() => setEntered(true)}
             />
+          </motion.div>
+        ) : isEmpty ? (
+          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex items-center justify-center px-6">
+            <div className="text-center">
+              <Sparkles className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+              <h2 className="text-2xl font-display font-bold text-foreground italic mb-2">Aún no hay destinos</h2>
+              <p className="text-sm text-muted-foreground">Usa el chat para agregar tus primeros destinos y actividades ✨</p>
+            </div>
           </motion.div>
         ) : (
           <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
@@ -54,11 +68,11 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
                   Nuestros destinos
                 </p>
                 <h2 className="text-3xl font-display font-bold text-foreground italic">
-                  6 países, un solo{' '}
+                  {stats.countriesCount} {stats.countriesCount === 1 ? 'destino' : 'países'}, un solo{' '}
                   <span className="bg-gradient-to-r from-rose to-gold bg-clip-text text-transparent">amor</span>
                 </h2>
                 <p className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
-                  Toca cada destino para ver la guía completa con restaurantes, atracciones, tips y spots para fotos 📸
+                  Toca cada destino para ver la guía completa 📸
                 </p>
               </motion.div>
             </div>
@@ -69,7 +83,7 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
               ))}
             </div>
 
-            <WishlistSection draftEvents={drafts} />
+            {drafts.length > 0 && <WishlistSection draftEvents={drafts} />}
 
             <motion.div
               initial={{ opacity: 0 }}
