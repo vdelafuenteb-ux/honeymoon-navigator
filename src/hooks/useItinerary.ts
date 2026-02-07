@@ -4,23 +4,67 @@ import { tripItinerary as initialItinerary } from '@/data/mockItinerary';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface ParsedReceiptData {
+  title?: string;
+  type?: string;
+  location?: string;
+  datetime_start?: string;
+  datetime_end?: string;
+  cost?: number;
+  currency?: string;
+  confirmation_code?: string;
+  notes?: string;
+}
+
+const PARSE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-receipt`;
+
 export const useItinerary = () => {
   const [itinerary, setItinerary] = useState<TripCountry[]>(initialItinerary);
 
-  const updateEventStatus = useCallback((eventId: string, status: 'draft' | 'confirmed', attachmentUrl?: string) => {
+  const updateEvent = useCallback((eventId: string, updates: Partial<TripEvent>) => {
     setItinerary(prev =>
       prev.map(country => ({
         ...country,
         days: country.days.map(day => ({
           ...day,
           events: day.events.map(event =>
-            event.id === eventId
-              ? { ...event, status, attachment_url: attachmentUrl || event.attachment_url }
-              : event
+            event.id === eventId ? { ...event, ...updates } : event
           ),
         })),
       }))
     );
+  }, []);
+
+  const updateEventStatus = useCallback((eventId: string, status: 'draft' | 'confirmed', attachmentUrl?: string) => {
+    updateEvent(eventId, { status, attachment_url: attachmentUrl });
+  }, [updateEvent]);
+
+  const parseReceipt = useCallback(async (imageUrl: string, fileType: string): Promise<ParsedReceiptData | null> => {
+    try {
+      const resp = await fetch(PARSE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ imageUrl, fileType }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status === 429) toast.error('Demasiadas solicitudes de IA, espera un momento');
+        else if (resp.status === 402) toast.error('Créditos de IA agotados');
+        else toast.error(err.error || 'Error al analizar el documento');
+        return null;
+      }
+
+      const result = await resp.json();
+      return result.data || null;
+    } catch (err) {
+      console.error('Parse receipt error:', err);
+      toast.error('Error al analizar el comprobante');
+      return null;
+    }
   }, []);
 
   const uploadReceipt = useCallback(async (eventId: string, file: File) => {
@@ -38,15 +82,47 @@ export const useItinerary = () => {
         .from('receipts')
         .getPublicUrl(data.path);
 
-      updateEventStatus(eventId, 'confirmed', urlData.publicUrl);
-      toast.success('¡Comprobante subido! Evento confirmado ✓');
-      return urlData.publicUrl;
+      const publicUrl = urlData.publicUrl;
+
+      // Immediately confirm the event with the attachment
+      updateEventStatus(eventId, 'confirmed', publicUrl);
+      toast.success('✨ Comprobante subido — analizando con IA...');
+
+      // Parse the receipt with AI in parallel
+      const parsed = await parseReceipt(publicUrl, file.type);
+
+      if (parsed) {
+        // Apply extracted data to the event
+        const updates: Partial<TripEvent> = {
+          status: 'confirmed',
+          attachment_url: publicUrl,
+          source: 'file_parsed',
+        };
+        if (parsed.datetime_start) updates.datetime_start = parsed.datetime_start;
+        if (parsed.datetime_end) updates.datetime_end = parsed.datetime_end;
+        if (parsed.cost) updates.cost_actual = parsed.cost;
+        if (parsed.currency) updates.currency = parsed.currency;
+        if (parsed.location) updates.location = parsed.location;
+        if (parsed.title) updates.title = parsed.title;
+        if (parsed.notes) {
+          updates.notes = parsed.confirmation_code
+            ? `Ref: ${parsed.confirmation_code}. ${parsed.notes}`
+            : parsed.notes;
+        } else if (parsed.confirmation_code) {
+          updates.notes = `Ref: ${parsed.confirmation_code}`;
+        }
+
+        updateEvent(eventId, updates);
+        toast.success('🎉 IA extrajo los datos del comprobante correctamente');
+      }
+
+      return publicUrl;
     } catch (err) {
       console.error('Upload error:', err);
       toast.error('Error al subir el comprobante');
       return null;
     }
-  }, [updateEventStatus]);
+  }, [updateEventStatus, updateEvent, parseReceipt]);
 
-  return { itinerary, updateEventStatus, uploadReceipt };
+  return { itinerary, updateEventStatus, updateEvent, uploadReceipt };
 };
