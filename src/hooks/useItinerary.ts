@@ -51,11 +51,35 @@ export const useItinerary = () => {
     };
 
     setItinerary(prev => {
-      const countryIdx = prev.findIndex(c => c.country === eventData.country);
-      if (countryIdx === -1) return prev;
-
       const dateStr = newEvent.datetime_start.slice(0, 10);
       const updated = [...prev];
+      let countryIdx = updated.findIndex(c => c.country.toLowerCase() === eventData.country.toLowerCase());
+
+      // If country doesn't exist yet, create it dynamically
+      if (countryIdx === -1) {
+        const flagMap: Record<string, string> = {
+          'grecia': '🇬🇷', 'greece': '🇬🇷', 'dubái': '🇦🇪', 'dubai': '🇦🇪', 'emiratos árabes': '🇦🇪',
+          'maldivas': '🇲🇻', 'maldives': '🇲🇻', 'china': '🇨🇳', 'japón': '🇯🇵', 'japan': '🇯🇵',
+          'corea': '🇰🇷', 'corea del sur': '🇰🇷', 'south korea': '🇰🇷', 'korea': '🇰🇷',
+          'italia': '🇮🇹', 'italy': '🇮🇹', 'francia': '🇫🇷', 'france': '🇫🇷',
+          'españa': '🇪🇸', 'spain': '🇪🇸', 'estados unidos': '🇺🇸', 'usa': '🇺🇸',
+          'méxico': '🇲🇽', 'mexico': '🇲🇽', 'tailandia': '🇹🇭', 'thailand': '🇹🇭',
+          'indonesia': '🇮🇩', 'bali': '🇮🇩', 'turquía': '🇹🇷', 'turkey': '🇹🇷',
+          'portugal': '🇵🇹', 'chile': '🇨🇱', 'argentina': '🇦🇷', 'colombia': '🇨🇴',
+          'perú': '🇵🇪', 'peru': '🇵🇪', 'brasil': '🇧🇷', 'brazil': '🇧🇷',
+          'egipto': '🇪🇬', 'egypt': '🇪🇬', 'marruecos': '🇲🇦', 'morocco': '🇲🇦',
+        };
+        const flag = flagMap[eventData.country.toLowerCase()] || '🌍';
+        const newCountry: TripCountry = {
+          country: eventData.country,
+          flag,
+          dateRange: dateStr,
+          days: [],
+        };
+        updated.push(newCountry);
+        countryIdx = updated.length - 1;
+      }
+
       const country = { ...updated[countryIdx], days: [...updated[countryIdx].days] };
 
       const dayIdx = country.days.findIndex(d => d.date === dateStr);
@@ -63,6 +87,14 @@ export const useItinerary = () => {
         country.days[dayIdx] = { ...country.days[dayIdx], events: [...country.days[dayIdx].events, newEvent] };
       } else {
         country.days = [...country.days, { date: dateStr, events: [newEvent] }].sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      // Update dateRange to reflect actual span
+      const allDates = country.days.map(d => d.date).sort();
+      if (allDates.length > 0) {
+        const start = new Date(allDates[0] + 'T12:00:00');
+        const end = new Date(allDates[allDates.length - 1] + 'T12:00:00');
+        country.dateRange = `${start.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })} — ${end.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}`;
       }
 
       updated[countryIdx] = country;
