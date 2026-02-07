@@ -25,7 +25,6 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Back button - always visible */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -38,11 +37,7 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
 
       <AnimatePresence mode="wait">
         {!entered ? (
-          <motion.div
-            key="hero"
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div key="hero" exit={{ opacity: 0, scale: 1.05 }} transition={{ duration: 0.6 }}>
             <CountdownHero
               daysRemaining={tripStats.daysRemaining}
               percentConfirmed={percent}
@@ -52,19 +47,9 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
             />
           </motion.div>
         ) : (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Section header */}
+          <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
             <div className="pt-16 pb-6 text-center px-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-medium mb-2">
                   Nuestros destinos
                 </p>
@@ -72,20 +57,20 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
                   6 países, un solo{' '}
                   <span className="bg-gradient-to-r from-rose to-gold bg-clip-text text-transparent">amor</span>
                 </h2>
+                <p className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
+                  Toca cada destino para ver la guía completa con restaurantes, atracciones, tips y spots para fotos 📸
+                </p>
               </motion.div>
             </div>
 
-            {/* Destination cards */}
             <div className="pb-4">
               {itinerary.map((country, i) => (
                 <DestinationCard key={country.country} country={country} index={i} />
               ))}
             </div>
 
-            {/* Wishlist section */}
             <WishlistSection draftEvents={drafts} />
 
-            {/* Footer */}
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -97,7 +82,7 @@ const PresentationView = ({ itinerary, onBack }: PresentationViewProps) => {
                 <Sparkles className="w-4 h-4 text-gold" />
                 <Heart className="w-4 h-4 text-rose-glow fill-current" />
               </div>
-              <p className="text-sm text-muted-foreground italic font-display text-lg">
+              <p className="text-muted-foreground italic font-display text-lg">
                 "El mundo es un libro, y quienes no viajan<br />solo leen una página"
               </p>
               <p className="text-xs text-muted-foreground mt-2">— San Agustín</p>
